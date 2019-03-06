@@ -114,6 +114,7 @@ def start():
         global destinations
         global initialized
         
+        result.insert(INSERT,"\n")
         last_destination = ""
         last_route = []
         waypoints.append(d_system)
@@ -227,7 +228,7 @@ def start():
             if o_final_response == previous_destination:
                 final_routes.append(route)
                 previous_destination = d_final_response                 
-                result.insert(INSERT,"\n"+o_final_response+":"+d_final_response)
+                result.insert(INSERT,"\n"+o_final_response+" to "+d_final_response)
                 result.see("end")
             else:
                 result.insert(INSERT,"\n"+"ERROR: Out of order! "+o_final_response+":"+d_final_response) 
@@ -242,6 +243,11 @@ def start():
         origins = []
         destinations = []
         initialized = False
+        start_field.delete(0, 'end')
+        end_field.delete(0, 'end')
+        start_field.insert(0, "Origin")
+        end_field.insert(0, "Destination")
+        result.insert(INSERT,"\n")
     
     #START THE OPTIMIZATION THREAD
     def begin_optimization():
