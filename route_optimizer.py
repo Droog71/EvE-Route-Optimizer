@@ -27,7 +27,7 @@ def start():
     screen_width = window.winfo_screenwidth() # width of the screen
     screen_height = window.winfo_screenheight() # height of the screen
     window.title("EvE Route Optimizer")
-    window.geometry('%dx%d+%d+%d' % (800,600,(screen_width/2)-400,(screen_height/2)-300))
+    window.geometry('%dx%d+%d+%d' % (700,600,(screen_width/2)-350,(screen_height/2)-300))
     window.configure(background='gray') 
     result = ScrolledText.ScrolledText(window,width=60,height=20)
     result.configure(font=("Arial Bold", 12), fg="white")
