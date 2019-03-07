@@ -193,11 +193,18 @@ def start():
                         last_route = split_pot                        
                         result.insert(INSERT,"\n"+"Checking original route from "+o_system+" for possible optimization.")
                         result.see("end")
-                        if len(split_pot) < len(split_route) and d_system not in destinations and o_system not in origins:                
-                            best_route = potential_route
-                            sys1 = o_system
-                            sys2 = d_system
-                            original_optimized = True
+                        if original_optimized == True:
+                            split_best = best_route.split(",")
+                            if len(split_pot) < len(split_best) and d_system not in destinations and o_system not in origins:                
+                                best_route = potential_route
+                                sys1 = o_system
+                                sys2 = d_system
+                        else:
+                            if len(split_pot) < len(split_route) and d_system not in destinations and o_system not in origins:                
+                                best_route = potential_route
+                                sys1 = o_system
+                                sys2 = d_system
+                                original_optimized = True
                 if original_optimized == True: #THE ORIGINAL ROUTE WAS OPTIMIZED                                    
                     result.insert(INSERT,"\n\n"+"Optimized route vs original: "+sys1+" to "+sys2+"\n")
                     result.see("end")
@@ -214,13 +221,20 @@ def start():
                             potential_route = create_route(True) #CREATE A ROUTE TO GET THE LENGTH IN NUMBER OF JUMPS
                             split_pot = potential_route.split(",")
                             #FIND THE SHORTEST ROUTE FROM THE CURRENT LOCATION TO ANOTHER LOCATION IN THE LIST
-                            if len(split_pot) < len(last_route) and d_system not in destinations and o_system not in origins:  
-                                best_route = potential_route   
-                                sys1 = o_system
-                                sys2 = d_system
-                                new_optimized = True 
-                            else:
-                                last_route = split_pot
+                            if new_optimized == True:
+                                split_best = best_route.split(",")
+                                if len(split_pot) < len(split_best) and d_system not in destinations and o_system not in origins:  
+                                    best_route = potential_route   
+                                    sys1 = o_system
+                                    sys2 = d_system  
+                            else: 
+                                if len(split_pot) < len(last_route) and d_system not in destinations and o_system not in origins:  
+                                    best_route = potential_route   
+                                    sys1 = o_system
+                                    sys2 = d_system
+                                    new_optimized = True 
+                                else:
+                                    last_route = split_pot
                                 
                 #A BETTER ROUTE WAS FOUND
                 if new_optimized == True:                                    
