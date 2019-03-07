@@ -199,7 +199,7 @@ def start():
                             sys2 = d_system
                             original_optimized = True
                 if original_optimized == True: #THE ORIGINAL ROUTE WAS OPTIMIZED                                    
-                    result.insert(INSERT,"\n\n"+"Optimized route vs original: "+sys1+":"+sys2+"\n")
+                    result.insert(INSERT,"\n\n"+"Optimized route vs original: "+sys1+" to "+sys2+"\n")
                     result.see("end")
                     optimized_routes.append(best_route)               
                     origins.append(sys1)
@@ -224,7 +224,7 @@ def start():
                                 
                 #A BETTER ROUTE WAS FOUND
                 if new_optimized == True:                                    
-                    result.insert(INSERT,"\n\n"+"Optimized route vs all possible: "+sys1+":"+sys2+"\n")
+                    result.insert(INSERT,"\n\n"+"Optimized route vs all possible: "+sys1+" to "+sys2+"\n")
                     result.see("end")
                     optimized_routes.append(best_route)                
                     origins.append(sys1)
@@ -249,7 +249,7 @@ def start():
                                 d_system = waypoint               
                                 potential_route = create_route(True)                            
                                 optimized_routes.append(potential_route)                    
-                                result.insert(INSERT,"\n\n"+"No exceptional route found. Creating route: "+o_system+":"+d_system+"\n")
+                                result.insert(INSERT,"\n\n"+"No exceptional route found. Creating route: "+o_system+" to "+d_system+"\n")
                                 result.see("end")
                                 origins.append(o_system)
                                 destinations.append(d_system)
