@@ -27,13 +27,13 @@ def start():
     screen_width = window.winfo_screenwidth() # width of the screen
     screen_height = window.winfo_screenheight() # height of the screen
     window.title("EvE Route Optimizer")
-    window.geometry('%dx%d+%d+%d' % (700,600,(screen_width/2)-350,(screen_height/2)-300))
+    window.geometry('%dx%d+%d+%d' % (680,580,(screen_width/2)-340,(screen_height/2)-290))
     window.configure(background='gray') 
     result = ScrolledText.ScrolledText(window,width=60,height=20)
     result.configure(font=("Arial Bold", 12), fg="white")
     result.configure(background='black') 
-    start_field = Entry(window,width=37)
-    end_field = Entry(window,width=37)  
+    start_field = Entry(window,width=37,font=("Arial Bold", 12))
+    end_field = Entry(window,width=37,font=("Arial Bold", 12))  
     start_field.insert(0, "Origin")
     end_field.insert(0, "Destination")     
     result.pack()
@@ -292,19 +292,17 @@ def start():
         global prefstr
         if preference.get() == 1: 
             prefstr = "shortest"    
-            print prefstr
         if preference.get() == 2: 
             prefstr = "secure"    
-            print prefstr
         if preference.get() == 3: 
             prefstr = "insecure"    
             
     preference = IntVar()
-    R1 = Radiobutton(window, text="Shortest", variable=preference,value=1,command=change_preference,bg="gray")
+    R1 = Radiobutton(window, text="Shortest", variable=preference,value=1,command=change_preference,bg="gray",font=("Arial Bold", 12))
     R1.pack()  
-    R2 = Radiobutton(window, text="Secure", variable=preference,value=2,command=change_preference,bg="gray")
+    R2 = Radiobutton(window, text="Secure", variable=preference,value=2,command=change_preference,bg="gray",font=("Arial Bold", 12))
     R2.pack()   
-    R3 = Radiobutton(window, text="Insecure", variable=preference,value=3,command=change_preference,bg="gray")
+    R3 = Radiobutton(window, text="Insecure", variable=preference,value=3,command=change_preference,bg="gray",font=("Arial Bold", 12))
     R3.pack()      
     button = Button(window, text="Add Waypoint", font=("Arial Bold", 12), bg="gray", fg="blue", command=add_waypoint)
     button.pack()
