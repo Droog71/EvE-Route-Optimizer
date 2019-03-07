@@ -2,10 +2,11 @@
 from __future__ import division
 import urllib
 import Tkinter
-from Tkinter import Button, Entry
+from Tkinter import Button, Entry, Radiobutton, IntVar
 from Tkconstants import INSERT
 import ScrolledText
 import threading
+from __builtin__ import False
 
 #GLOBAL VARIABLES
 routes = []
@@ -17,16 +18,18 @@ d_system = ""
 origins = []
 destinations = []
 initialized = False
+prefstr = "shortest"
 
 def start():
-    #CREATE THE WINDOW
+    #CREATE THE WINDOW 
+    global prefstr 
     window = Tkinter.Tk()
     screen_width = window.winfo_screenwidth() # width of the screen
     screen_height = window.winfo_screenheight() # height of the screen
     window.title("EvE Route Optimizer")
-    window.geometry('%dx%d+%d+%d' % (450,400,(screen_width/2)-225,(screen_height/2)-200))
+    window.geometry('%dx%d+%d+%d' % (800,600,(screen_width/2)-400,(screen_height/2)-300))
     window.configure(background='gray') 
-    result = ScrolledText.ScrolledText(window,width=40,height=13)
+    result = ScrolledText.ScrolledText(window,width=60,height=20)
     result.configure(font=("Arial Bold", 12), fg="white")
     result.configure(background='black') 
     start_field = Entry(window,width=37)
@@ -61,6 +64,7 @@ def start():
         global waypoints
         global o_system
         global d_system
+        global prefstr
         
         #GET ORIGIN ID
         o_base = "https://esi.evetech.net/latest/search/?categories=solar_system&search="
@@ -89,10 +93,10 @@ def start():
         #GET ROUTE 
         r_base = "https://esi.evetech.net/latest/route/"
         r_end = "/?datasource=tranquility&flag="
-        r_type = "shortest"       
+        r_type = prefstr   
         r_slash = "/"
         r_url = r_base +o_id_final+r_slash+d_id_final+r_end+r_type  
-        
+
         #IF THIS ROUTE IS PART OF THE ORIGINAL REQUEST, ADD IT TO THE LIST
         if optimizing == False:
             r_response = urllib.urlopen(r_url).read()                   
@@ -118,6 +122,9 @@ def start():
         last_destination = ""
         last_route = []
         waypoints.append(d_system)
+        best_route = []
+        sys1 = ""
+        sys2 = ""
                
         for route in routes:
             split_route = route.split(",")
@@ -127,6 +134,7 @@ def start():
             final_url = begin_url+origin+end_url
             response = urllib.urlopen(final_url).read() 
             final_origin = response.split(":")[2].split(",")[0].replace('"',"")
+            o_system = final_origin
             
             destination = split_route[len(split_route)-1].split("]")[0]
             d_begin_url = "https://esi.evetech.net/latest/universe/systems/"
@@ -135,76 +143,91 @@ def start():
             d_response = urllib.urlopen(d_final_url).read()
             d_final_response = d_response.split(":")[2].split(",")[0].replace('"',"")
             original_destination = d_final_response
-            
-            o_system = final_origin
+                        
             if initialized == False:
                 destinations.append(o_system)
                 initialized = True
                 last_destination = o_system
             elif o_system != last_destination:
                 o_system = last_destination
-            optimized = False
+            original_optimized = False
+            new_optimized = False
             for waypoint in waypoints:
-                if optimized == False:
+                if o_system != waypoint:
                     d_system = waypoint               
-                    if o_system != d_system:                                            
-                        result.insert(INSERT,"\n"+"Checking route: "+o_system+":"+d_system)
-                        result.see("end")
-                        potential_route = create_route(True)
-                        split_pot = potential_route.split(",")
-                        last_route = split_pot
-                        if len(split_pot) < len(split_route) and d_system not in destinations and o_system not in origins:
+                if o_system == final_origin:                                                                  
+                    result.see("end")
+                    potential_route = create_route(True)
+                    split_pot = potential_route.split(",")
+                    last_route = split_pot                        
+                    result.insert(INSERT,"\n"+"Checking original route from "+o_system+" for possible optimization.")
+                    if len(split_pot) < len(split_route) and d_system not in destinations and o_system not in origins:                
+                        best_route = potential_route
+                        sys1 = o_system
+                        sys2 = d_system
+                        original_optimized = True
+            if original_optimized == True: #THE ORIGINAL ROUTE WAS OPTIMIZED                                    
+                result.insert(INSERT,"\n\n"+"Optimized route vs original: "+sys1+":"+sys2+"\n")
+                result.see("end")
+                optimized_routes.append(best_route)               
+                origins.append(sys1)
+                destinations.append(sys2)
+                last_destination = sys2
+            elif o_system != final_origin: #THE ROUTE HAS BEEN ALTERED
+                for waypoint in waypoints:
+                        if o_system != waypoint:
+                            d_system = waypoint              
+                        if o_system != d_system:                                            
+                            result.insert(INSERT,"\n"+"Finding the shortest route from "+o_system+" to another waypoint.")
+                            result.see("end")
+                            potential_route = create_route(True)
+                            split_pot = potential_route.split(",")
+                            #FIND THE SHORTEST ROUTE FROM THE CURRENT LOCATION TO ANOTHER LOCATION IN THE LIST
+                            if len(split_pot) < len(last_route) and d_system not in destinations and o_system not in origins:  
+                                best_route = potential_route   
+                                sys1 = o_system
+                                sys2 = d_system
+                                new_optimized = True 
+                            else:
+                                last_route = split_pot
+            #A BETTER ROUTE WAS FOUND
+            if new_optimized == True:                                    
+                result.insert(INSERT,"\n\n"+"Optimized route vs all possible: "+sys1+":"+sys2+"\n")
+                result.see("end")
+                optimized_routes.append(best_route)                
+                origins.append(sys1)
+                destinations.append(sys2)
+                last_destination = sys2
+            #THE ROUTE WAS ALREADY OPTIMAL                            
+            elif new_optimized == False and o_system == final_origin and original_optimized == False and d_system not in destinations:
+                optimized_routes.append(route)
+                result.insert(INSERT,"\n\n"+"Keeping original route...\n")
+                result.see("end")
+                origins.append(o_system)
+                destinations.append(original_destination)
+                last_destination = original_destination
+            #FAILED
+            elif original_optimized == False and new_optimized == False:
+                finished = False
+                for waypoint in waypoints:
+                    if finished == False:
+                        if o_system != waypoint and waypoint not in destinations:
+                            d_system = waypoint               
+                            potential_route = create_route(True)                            
                             optimized_routes.append(potential_route)                    
-                            result.insert(INSERT,"\n"+"Optimized: "+o_system+":"+d_system)
+                            result.insert(INSERT,"\n\n"+"No exceptional route found. Creating route: "+o_system+":"+d_system+"\n")
                             result.see("end")
                             origins.append(o_system)
                             destinations.append(d_system)
                             last_destination = d_system
-                            optimized = True
-            if optimized == False and d_system not in destinations and o_system not in origins:
-                if final_origin == last_destination:
-                    optimized_routes.append(route)
-                    result.insert(INSERT,"\n"+"Keeping route...")
-                    result.see("end")
-                    origins.append(o_system)
-                    destinations.append(original_destination)
-                    last_destination = original_destination
-                else:
-                    for waypoint in waypoints:
-                        if optimized == False:
-                            d_system = waypoint               
-                            if o_system != d_system:                                            
-                                result.insert(INSERT,"\n"+"Checking route: "+o_system+":"+d_system)
-                                result.see("end")
-                                potential_route = create_route(True)
-                                split_pot = potential_route.split(",")
-                                if len(split_pot) < len(last_route) and d_system not in destinations and o_system not in origins:
-                                    optimized_routes.append(potential_route)                    
-                                    result.insert(INSERT,"\n"+"Optimized route: "+o_system+":"+d_system)
-                                    result.see("end")
-                                    origins.append(o_system)
-                                    destinations.append(d_system)
-                                    last_destination = d_system
-                                    optimized = True
-                                else:
-                                    last_route = split_pot
-            elif optimized == False:
-                for waypoint in waypoints:
-                    d_system = waypoint               
-                    if o_system != d_system and d_system not in destinations and o_system not in origins:                    
-                        result.insert(INSERT,"\n"+"Reconfiguring route: "+o_system+":"+d_system)
-                        result.see("end")
-                        potential_route = create_route(True)
-                        optimized_routes.append(potential_route)                    
-                        result.insert(INSERT,"\n"+"Route reconfigured: "+o_system+":"+d_system)
-                        result.see("end")
-                        origins.append(o_system)
-                        destinations.append(d_system)
-                        last_destination = d_system
+                            finished = True
                 
+                original_optimized = False
+                new_optimized = False  
+  
         previous_destination = ""
         for route in optimized_routes:
-            split_route = route.split(",")
+            split_route = str(route).split(",")
             origin = split_route[0].split("[")[1]
             destination = split_route[len(split_route)-1].split("]")[0]
 
@@ -233,6 +256,17 @@ def start():
             else:
                 result.insert(INSERT,"\n"+"ERROR: Out of order! "+o_final_response+":"+d_final_response) 
                 result.see("end")
+        
+        #RETURN HOME       
+        #split_route = routes[0].split(",")
+        #origin = split_route[0].split("[")[1]
+        #begin_url = "https://esi.evetech.net/latest/universe/systems/"
+        #end_url = "/?datasource=tranquility&language=en-us"
+        #final_url = begin_url+origin+end_url
+        #response = urllib.urlopen(final_url).read() 
+        #final_origin = response.split(":")[2].split(",")[0].replace('"',"")
+        #result.insert(INSERT,"\n"+last_destination+" to "+final_origin)
+        #result.see("end")
                     
         routes = []
         optimized_routes = []
@@ -253,7 +287,25 @@ def start():
     def begin_optimization():
         optimization_thread = threading.Thread(target=optimize)
         optimization_thread.start()   
-        
+    
+    def change_preference():
+        global prefstr
+        if preference.get() == 1: 
+            prefstr = "shortest"    
+            print prefstr
+        if preference.get() == 2: 
+            prefstr = "secure"    
+            print prefstr
+        if preference.get() == 3: 
+            prefstr = "insecure"    
+            
+    preference = IntVar()
+    R1 = Radiobutton(window, text="Shortest", variable=preference,value=1,command=change_preference,bg="gray")
+    R1.pack()  
+    R2 = Radiobutton(window, text="Secure", variable=preference,value=2,command=change_preference,bg="gray")
+    R2.pack()   
+    R3 = Radiobutton(window, text="Insecure", variable=preference,value=3,command=change_preference,bg="gray")
+    R3.pack()      
     button = Button(window, text="Add Waypoint", font=("Arial Bold", 12), bg="gray", fg="blue", command=add_waypoint)
     button.pack()
     button = Button(window, text="Optimize", font=("Arial Bold", 12), bg="gray", fg="blue", command=begin_optimization)
