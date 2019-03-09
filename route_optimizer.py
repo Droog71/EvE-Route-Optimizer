@@ -147,7 +147,50 @@ def start():
         best_route = []
         sys1 = ""
         sys2 = ""
-               
+        
+        #GET AND DISPLAY THE TOTAL ROUTE DISTANCE IN NUMBER OF JUMPS
+        total_distance = 0
+        for route in routes:
+            split_route = route.split(",")
+            total_distance += len(split_route)            
+        result.insert(INSERT,"\n"+"Number of jumps: "+str(total_distance))
+        result.see("end")
+
+        #GET ID FOR THE ORIGIN
+        split_for_origin = routes[0].split(",")
+        first_origin = split_for_origin[0].split("[")[1]       
+        
+        #GET ID FOR THE LAST STOP
+        final_route = routes[len(routes)-1]
+        split_final_route = final_route.split(",")
+        last_stop = split_final_route[len(split_final_route)-1].split("]")[0]
+        
+        try:
+            #CONVERT ID TO NAME FOR ORIGIN
+            first_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+            first_end_url = "/?datasource=tranquility&language=en-us"
+            first_final_url = first_begin_url+first_origin+first_end_url
+            first_response = urllib.urlopen(first_final_url).read() 
+            first_final_origin = first_response.split(":")[2].split(",")[0].replace('"',"")
+            d_system = first_final_origin
+            
+            #CONVERT ID TO NAME FOR DESTINATION
+            endpoint_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+            endpoint_end_url = "/?datasource=tranquility&language=en-us"
+            endpoint_final_url = endpoint_begin_url+last_stop+endpoint_end_url
+            endpoint_response = urllib.urlopen(endpoint_final_url).read()
+            endpoint_final_response = endpoint_response.split(":")[2].split(",")[0].replace('"',"")
+            o_system = endpoint_final_response 
+        except:
+            result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
+            result.see("end")
+        
+        #GET AND DISPLAY THE TOTAL ROUTE DISTANCE INCLUDING RETURN TO ORIGIN   
+        return_route = create_route(True)       
+        return_distance = len(return_route.split(","))
+        result.insert(INSERT,"\n"+"Including return to origin: "+str(total_distance+return_distance)+"\n")
+        result.see("end")
+                       
         for route in routes:
             try:
                 #CONVERT ID TO NAME FOR ORIGIN
@@ -311,6 +354,49 @@ def start():
                     result.see("end")
             except:
                 result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
+        
+        #GET AND DISPLAY THE TOTAL TRIP DISTANCE IN NUMBER OF JUMPS
+        total_distance = 0
+        for route in final_routes:
+            split_route = route.split(",")
+            total_distance += len(split_route)
+        result.insert(INSERT,"\n\n"+"Number of jumps: "+str(total_distance))
+        result.see("end")
+        
+        #GET THE ID FOR THE ORIGIN
+        split_for_origin = final_routes[0].split(",")
+        first_origin = split_for_origin[0].split("[")[1]       
+        
+        #GET THE ID FOR THE LAST STOP
+        final_route = final_routes[len(routes)-1]
+        split_final_route = final_route.split(",")
+        last_stop = split_final_route[len(split_final_route)-1].split("]")[0]
+        
+        try:
+            #CONVERT ID TO NAME FOR ORIGIN
+            first_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+            first_end_url = "/?datasource=tranquility&language=en-us"
+            first_final_url = first_begin_url+first_origin+first_end_url
+            first_response = urllib.urlopen(first_final_url).read() 
+            first_final_origin = first_response.split(":")[2].split(",")[0].replace('"',"")
+            d_system = first_final_origin
+            
+            #CONVERT ID TO NAME FOR DESTINATION
+            endpoint_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+            endpoint_end_url = "/?datasource=tranquility&language=en-us"
+            endpoint_final_url = endpoint_begin_url+last_stop+endpoint_end_url
+            endpoint_response = urllib.urlopen(endpoint_final_url).read()
+            endpoint_final_response = endpoint_response.split(":")[2].split(",")[0].replace('"',"")
+            o_system = endpoint_final_response 
+        except:
+            result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
+            result.see("end")
+     
+        #GET AND DISPLAY THE TOTAL TRIP DISTANCE INCLUDING RETURN TO ORIGIN  
+        return_route = create_route(True)        
+        return_distance = len(return_route.split(","))        
+        result.insert(INSERT,"\n"+"Including return to origin: "+str(total_distance+return_distance))
+        result.see("end")
                 
         #THIS IS HERE TO DISPLAY THE RETURN HOME ROUTE BUT IS NOT NECESSARY     
         #split_route = routes[0].split(",")
