@@ -42,14 +42,14 @@ def start():
     iteration_field = Entry(window,width=12,font=("Arial Bold", 12)) 
     start_field.insert(0, "Origin")
     end_field.insert(0, "Destination")   
-    iteration_field.insert(0, "Recurrence")  
+    iteration_field.insert(0, "Cycles")  
     result.pack()
     start_field.pack()
     end_field.pack()
     iteration_field.pack()
     
     #ADD A WAYPOINT
-    def add_waypoint(): 
+    def add_waypoint(Event=None): 
         global o_system
         global d_system
         global waypoint_adding_done
@@ -214,7 +214,7 @@ def start():
         count = 0
         while count < cycles:            
             count += 1   
-            result.insert(INSERT,"\nCycle "+str(count)+"\n")
+            result.insert(INSERT,"\nCycle "+str(count)+":\n")
             result.see("end")           
             for route in routes:
                 try:
@@ -533,13 +533,6 @@ def start():
         if preference.get() == 3: 
             prefstr = "insecure"    
     
-    #ADD A WAYPOINT
-    def request_route(Event=None):
-        global waypoint_adding_done
-        if waypoint_adding_done == True:
-            add_waypoint_thread = threading.Thread(target=add_waypoint)
-            add_waypoint_thread.start()
-    
     #SETUP BUTTONS       
     preference = IntVar()
     R1 = Radiobutton(window, text="Shortest", variable=preference,value=1,command=change_preference,bg="gray",font=("Arial Bold", 12))
@@ -548,11 +541,11 @@ def start():
     R2.pack()   
     R3 = Radiobutton(window, text="Insecure", variable=preference,value=3,command=change_preference,bg="gray",font=("Arial Bold", 12))
     R3.pack()      
-    button = Button(window, text="Add Waypoint", font=("Arial Bold", 12), bg="gray", fg="blue", command=request_route)
+    button = Button(window, text="Add Waypoint", font=("Arial Bold", 12), bg="gray", fg="blue", command=add_waypoint)
     button.pack()
     button = Button(window, text="Optimize", font=("Arial Bold", 12), bg="gray", fg="blue", command=begin_optimization)
     button.pack()
-    window.bind("<Return>",request_route) #ALLOWS THE RETURN KEY TO ADD A WAYPOINT INSTEAD OF CLICKING THE BUTTON
+    window.bind("<Return>",add_waypoint) #ALLOWS THE RETURN KEY TO ADD A WAYPOINT INSTEAD OF CLICKING THE BUTTON
     window.mainloop()   
 start()
 
