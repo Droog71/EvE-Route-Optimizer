@@ -39,7 +39,7 @@ def start():
     result.configure(background='black') 
     start_field = Entry(window,width=37,font=("Arial Bold", 12))
     end_field = Entry(window,width=37,font=("Arial Bold", 12)) 
-    iteration_field = Entry(window,width=12,font=("Arial Bold", 12)) 
+    iteration_field = Entry(window,width=6,font=("Arial Bold", 12)) 
     start_field.insert(0, "Origin")
     end_field.insert(0, "Destination")   
     iteration_field.insert(0, "Cycles")  
