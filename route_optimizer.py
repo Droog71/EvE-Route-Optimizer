@@ -6,18 +6,23 @@ from Tkinter import Button, Entry, Radiobutton, IntVar
 from Tkconstants import INSERT
 import ScrolledText
 import threading
-from __builtin__ import False
 
 #GLOBAL VARIABLES
 routes = []
 optimized_routes = []
+total_routes = []
 final_routes = []
+previous_routes = []
+tested_routes = []
 waypoints = []
 o_system = ""
 d_system = ""
 origins = []
 destinations = []
+final_best_route = []
 initialized = False
+cycles = 1
+waypoint_adding_done = True
 prefstr = "shortest"
 
 def start():
@@ -27,24 +32,29 @@ def start():
     screen_width = window.winfo_screenwidth() # width of the screen
     screen_height = window.winfo_screenheight() # height of the screen
     window.title("EvE Route Optimizer")
-    window.geometry('%dx%d+%d+%d' % (680,580,(screen_width/2)-340,(screen_height/2)-290))
+    window.geometry('%dx%d+%d+%d' % (680,620,(screen_width/2)-340,(screen_height/2)-310))
     window.configure(background='gray') 
     result = ScrolledText.ScrolledText(window,width=60,height=20)
     result.configure(font=("Arial Bold", 12), fg="white")
     result.configure(background='black') 
     start_field = Entry(window,width=37,font=("Arial Bold", 12))
-    end_field = Entry(window,width=37,font=("Arial Bold", 12))  
+    end_field = Entry(window,width=37,font=("Arial Bold", 12)) 
+    iteration_field = Entry(window,width=12,font=("Arial Bold", 12)) 
     start_field.insert(0, "Origin")
-    end_field.insert(0, "Destination")     
+    end_field.insert(0, "Destination")   
+    iteration_field.insert(0, "Recurrence")  
     result.pack()
     start_field.pack()
     end_field.pack()
+    iteration_field.pack()
     
     #ADD A WAYPOINT
-    def add_waypoint(Event=None): 
+    def add_waypoint(): 
         global o_system
         global d_system
+        global waypoint_adding_done
         
+        waypoint_adding_done = False
         o_system = start_field.get()
         d_system = end_field.get()
         if (o_system != "" and d_system != "" and o_system != "Origin" and d_system != "Destination"):
@@ -60,6 +70,7 @@ def start():
                 else:
                     result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
                     result.see("end")
+                waypoint_adding_done = True
             except:
                 result.insert(INSERT,"\n"+"ERROR: Invalid!") 
                 result.see("end")  
@@ -135,11 +146,16 @@ def start():
         global routes
         global waypoints
         global optimized_routes
+        global previous_routes
+        global tested_routes
+        global total_routes
         global final_routes
         global origins
         global destinations
         global initialized
-        
+        global cycles
+        global final_best_route
+
         result.insert(INSERT,"\n")
         last_destination = ""
         last_route = []
@@ -180,7 +196,7 @@ def start():
             endpoint_final_url = endpoint_begin_url+last_stop+endpoint_end_url
             endpoint_response = urllib.urlopen(endpoint_final_url).read()
             endpoint_final_response = endpoint_response.split(":")[2].split(",")[0].replace('"',"")
-            o_system = endpoint_final_response 
+            o_system = endpoint_final_response          
         except:
             result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
             result.see("end")
@@ -190,28 +206,40 @@ def start():
         return_distance = len(return_route.split(","))
         result.insert(INSERT,"\n"+"Including return to origin: "+str(total_distance+return_distance)+"\n")
         result.see("end")
-                       
-        for route in routes:
-            try:
-                #CONVERT ID TO NAME FOR ORIGIN
-                split_route = route.split(",")
-                origin = split_route[0].split("[")[1]
-                begin_url = "https://esi.evetech.net/latest/universe/systems/"
-                end_url = "/?datasource=tranquility&language=en-us"
-                final_url = begin_url+origin+end_url
-                response = urllib.urlopen(final_url).read() 
-                final_origin = response.split(":")[2].split(",")[0].replace('"',"")
-                o_system = final_origin
-                
-                #CONVERT ID TO NAME FOR DESTINATION
-                destination = split_route[len(split_route)-1].split("]")[0]
-                d_begin_url = "https://esi.evetech.net/latest/universe/systems/"
-                d_end_url = "/?datasource=tranquility&language=en-us"
-                d_final_url = d_begin_url+destination+d_end_url
-                d_response = urllib.urlopen(d_final_url).read()
-                d_final_response = d_response.split(":")[2].split(",")[0].replace('"',"")
-                original_destination = d_final_response            
-                
+        
+        try:
+            cycles = int(iteration_field.get())
+        except:
+            cycles = 1
+        count = 0
+        while count < cycles:            
+            count += 1   
+            result.insert(INSERT,"\nCycle "+str(count)+"\n")
+            result.see("end")           
+            for route in routes:
+                try:
+                    #CONVERT ID TO NAME FOR ORIGIN
+                    split_route = route.split(",")
+                    origin = split_route[0].split("[")[1]
+                    begin_url = "https://esi.evetech.net/latest/universe/systems/"
+                    end_url = "/?datasource=tranquility&language=en-us"
+                    final_url = begin_url+origin+end_url
+                    response = urllib.urlopen(final_url).read() 
+                    final_origin = response.split(":")[2].split(",")[0].replace('"',"")
+                    o_system = final_origin
+                    
+                    #CONVERT ID TO NAME FOR DESTINATION
+                    destination = split_route[len(split_route)-1].split("]")[0]
+                    d_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+                    d_end_url = "/?datasource=tranquility&language=en-us"
+                    d_final_url = d_begin_url+destination+d_end_url
+                    d_response = urllib.urlopen(d_final_url).read()
+                    d_final_response = d_response.split(":")[2].split(",")[0].replace('"',"")
+                    original_destination = d_final_response                                
+                except:
+                    result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
+                    result.see("end")  
+                     
                 #ADD THE ORIGIN AS A DESTINATION SO IT'S NOT INCLUDED IN POTENTIAL ROUTES           
                 if initialized == False:
                     destinations.append(o_system)
@@ -229,7 +257,7 @@ def start():
                 #GO THROUGH ALL OF THE WAYPOINTS AND DETERMINE IF THE ORIGINAL ROUTE CAN BE OPTIMIZED
                 for waypoint in waypoints:
                     if o_system != waypoint: #PREVENT ROUTING TO THE CURRENT SYSTEM
-                        d_system = waypoint               
+                        d_system = waypoint              
                     if o_system == final_origin: #THE ORIGINAL ROUTE IS STILL PRESENT                                                                                  
                         potential_route = create_route(True) #CREATE A ROUTE TO GET THE LENGTH IN NUMBER OF JUMPS
                         split_pot = potential_route.split(",")
@@ -304,21 +332,80 @@ def start():
                         if finished == False:
                             if o_system != waypoint and waypoint not in destinations: #GET THE FIRST UNUSED WAYPOINT
                                 d_system = waypoint               
-                                potential_route = create_route(True)                            
-                                optimized_routes.append(potential_route)                    
-                                result.insert(INSERT,"\n\n"+"No exceptional route found. Creating route: "+o_system+" to "+d_system+"\n")
-                                result.see("end")
-                                origins.append(o_system)
-                                destinations.append(d_system)
-                                last_destination = d_system
-                                finished = True
-            except:
-                result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
-                result.see("end")
+                                potential_route = create_route(True) 
+                                if potential_route not in tested_routes: #THIS ROUTE HAS NOT YET BEEN EXAMINED 
+                                    tested_routes.append(potential_route)                       
+                                    optimized_routes.append(potential_route)                    
+                                    result.insert(INSERT,"\n\n"+"No exceptional route found. Creating route: "+o_system+" to "+d_system+"\n")
+                                    result.see("end")
+                                    origins.append(o_system)
+                                    destinations.append(d_system)
+                                    last_destination = d_system
+                                    finished = True 
+                                else: #ALL POSSIBLE ROUTES HAVE BEEN EXAMINED FOR THIS WAYPOINT 
+                                    previous_route = [None] * 10000
+                                    best_tested_route = []
+                                    for route in tested_routes:
+                                        split_route = str(route).split(",")                                            
+                                        origin = split_route[0].split("[")[1]
+                                        try: 
+                                            o_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+                                            o_end_url = "/?datasource=tranquility&language=en-us"
+                                            o_final_url = o_begin_url+origin+o_end_url
+                                            o_response = urllib.urlopen(o_final_url).read()
+                                            o_final_response = o_response.split(":")[2].split(",")[0].replace('"',"") 
+                                        except:
+                                            result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
+                                            result.see("end")    
+                                        if o_final_response == o_system:                                                                              
+                                            if len(route) < len(previous_route):
+                                                best_tested_route = route
+                                            previous_route = route 
+                                    split_route = str(best_tested_route).split(",")                                            
+                                    origin = split_route[0].split("[")[1]
+                                    destination = split_route[len(split_route)-1].split("]")[0]
+                                    try:                                                                                                                               
+                                        o_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+                                        o_end_url = "/?datasource=tranquility&language=en-us"
+                                        o_final_url = o_begin_url+origin+o_end_url
+                                        o_response = urllib.urlopen(o_final_url).read()
+                                        t_o_final_response = o_response.split(":")[2].split(",")[0].replace('"',"")
+                                        
+                                        d_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+                                        d_end_url = "/?datasource=tranquility&language=en-us"
+                                        d_final_url = d_begin_url+destination+d_end_url
+                                        d_response = urllib.urlopen(d_final_url).read()
+                                        t_d_final_response = d_response.split(":")[2].split(",")[0].replace('"',"") 
+                                    except:
+                                        result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
+                                        result.see("end")                 
+                                    optimized_routes.append(best_tested_route)                    
+                                    result.insert(INSERT,"\n\n"+"Best route already found for this waypoint: "+t_o_final_response+" to "+t_d_final_response+"\n")
+                                    result.see("end")
+                                    origins.append(o_system)
+                                    destinations.append(d_system)
+                                    last_destination = d_system
+                                    finished = True 
+                                                        
+            total_routes.append(optimized_routes)          
+            previous_routes = optimized_routes           
+            optimized_routes = []
+            origins = []
+            destinations = []
+            original_optimized = False
+            new_optimized = False
+            initialized = False
+        
+        #SELECT THE BEST ROUTE FROM ALL CYCLES
+        previous_route = [None] * 10000
+        for route in total_routes:
+            if len(route) < len(previous_route):
+                final_best_route = route
+            previous_route = route
                 
         #DISPLAY THE OPTIMIZED ROUTE
         previous_destination = ""
-        for route in optimized_routes:
+        for route in final_best_route:
             split_route = str(route).split(",")
             origin = split_route[0].split("[")[1]
             destination = split_route[len(split_route)-1].split("]")[0]
@@ -336,7 +423,7 @@ def start():
                 d_final_url = d_begin_url+destination+d_end_url
                 d_response = urllib.urlopen(d_final_url).read()
                 d_final_response = d_response.split(":")[2].split(",")[0].replace('"',"")            
-            
+                
                 #SET THE CURRENT SYSTEM TO INITIALIZE ITERATION   
                 if previous_destination == "":
                     previous_destination = o_final_response
@@ -368,7 +455,7 @@ def start():
         first_origin = split_for_origin[0].split("[")[1]       
         
         #GET THE ID FOR THE LAST STOP
-        final_route = final_routes[len(routes)-1]
+        final_route = final_routes[len(final_routes)-1]
         split_final_route = final_route.split(",")
         last_stop = split_final_route[len(split_final_route)-1].split("]")[0]
         
@@ -409,7 +496,11 @@ def start():
         #result.insert(INSERT,"\n"+last_destination+" to "+final_origin)
         #result.see("end")
         
-        #RESET VARIABLES SO ANOTHER SET OF WAYPOINTS CAN BE ENTERED           
+        #RESET VARIABLES SO ANOTHER SET OF WAYPOINTS CAN BE ENTERED   
+        previous_routes = []
+        total_routes = []
+        tested_routes = []
+        final_best_route = []        
         routes = []
         optimized_routes = []
         final_routes = []
@@ -427,8 +518,10 @@ def start():
     
     #START THE OPTIMIZATION THREAD
     def begin_optimization():
-        optimization_thread = threading.Thread(target=optimize)
-        optimization_thread.start()   
+        global waypoint_adding_done
+        if waypoint_adding_done == True:
+            optimization_thread = threading.Thread(target=optimize)
+            optimization_thread.start()   
     
     #CHANGE THE ROUTE PREFERENCE
     def change_preference():
@@ -440,6 +533,13 @@ def start():
         if preference.get() == 3: 
             prefstr = "insecure"    
     
+    #ADD A WAYPOINT
+    def request_route(Event=None):
+        global waypoint_adding_done
+        if waypoint_adding_done == True:
+            add_waypoint_thread = threading.Thread(target=add_waypoint)
+            add_waypoint_thread.start()
+    
     #SETUP BUTTONS       
     preference = IntVar()
     R1 = Radiobutton(window, text="Shortest", variable=preference,value=1,command=change_preference,bg="gray",font=("Arial Bold", 12))
@@ -448,11 +548,11 @@ def start():
     R2.pack()   
     R3 = Radiobutton(window, text="Insecure", variable=preference,value=3,command=change_preference,bg="gray",font=("Arial Bold", 12))
     R3.pack()      
-    button = Button(window, text="Add Waypoint", font=("Arial Bold", 12), bg="gray", fg="blue", command=add_waypoint)
+    button = Button(window, text="Add Waypoint", font=("Arial Bold", 12), bg="gray", fg="blue", command=request_route)
     button.pack()
     button = Button(window, text="Optimize", font=("Arial Bold", 12), bg="gray", fg="blue", command=begin_optimization)
     button.pack()
-    window.bind("<Return>",add_waypoint) #ALLOWS THE RETURN KEY TO ADD A WAYPOINT INSTEAD OF CLICKING THE BUTTON
+    window.bind("<Return>",request_route) #ALLOWS THE RETURN KEY TO ADD A WAYPOINT INSTEAD OF CLICKING THE BUTTON
     window.mainloop()   
 start()
 
