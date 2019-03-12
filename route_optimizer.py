@@ -342,50 +342,53 @@ def start():
                                     destinations.append(d_system)
                                     last_destination = d_system
                                     finished = True 
-                                else: #ALL POSSIBLE ROUTES HAVE BEEN EXAMINED FOR THIS WAYPOINT 
-                                    previous_route = [None] * 10000
-                                    best_tested_route = []
-                                    for route in tested_routes:
-                                        split_route = str(route).split(",")                                            
-                                        origin = split_route[0].split("[")[1]
-                                        try: 
-                                            o_begin_url = "https://esi.evetech.net/latest/universe/systems/"
-                                            o_end_url = "/?datasource=tranquility&language=en-us"
-                                            o_final_url = o_begin_url+origin+o_end_url
-                                            o_response = urllib.urlopen(o_final_url).read()
-                                            o_final_response = o_response.split(":")[2].split(",")[0].replace('"',"") 
-                                        except:
-                                            result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
-                                            result.see("end")    
-                                        if o_final_response == o_system:                                                                              
-                                            if len(route) < len(previous_route):
-                                                best_tested_route = route
-                                            previous_route = route 
-                                    split_route = str(best_tested_route).split(",")                                            
-                                    origin = split_route[0].split("[")[1]
-                                    destination = split_route[len(split_route)-1].split("]")[0]
-                                    try:                                                                                                                               
-                                        o_begin_url = "https://esi.evetech.net/latest/universe/systems/"
-                                        o_end_url = "/?datasource=tranquility&language=en-us"
-                                        o_final_url = o_begin_url+origin+o_end_url
-                                        o_response = urllib.urlopen(o_final_url).read()
-                                        t_o_final_response = o_response.split(":")[2].split(",")[0].replace('"',"")
-                                        
-                                        d_begin_url = "https://esi.evetech.net/latest/universe/systems/"
-                                        d_end_url = "/?datasource=tranquility&language=en-us"
-                                        d_final_url = d_begin_url+destination+d_end_url
-                                        d_response = urllib.urlopen(d_final_url).read()
-                                        t_d_final_response = d_response.split(":")[2].split(",")[0].replace('"',"") 
-                                    except:
-                                        result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
-                                        result.see("end")                 
-                                    optimized_routes.append(best_tested_route)                    
-                                    result.insert(INSERT,"\n\n"+"Best route already found for this waypoint: "+t_o_final_response+" to "+t_d_final_response+"\n")
-                                    result.see("end")
-                                    origins.append(o_system)
-                                    destinations.append(d_system)
-                                    last_destination = d_system
-                                    finished = True 
+                    if finished == False: #ALL POSSIBLE ROUTES HAVE BEEN EXAMINED FOR THIS WAYPOINT SO THE SHORTEST ONE IS SELECTED
+                        previous_best_route = [None] * 10000
+                        best_tested_route = []
+                        for route in tested_routes:
+                            split_route = str(route).split(",")                                            
+                            origin = split_route[0].split("[")[1]
+                            try: 
+                                o_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+                                o_end_url = "/?datasource=tranquility&language=en-us"
+                                o_final_url = o_begin_url+origin+o_end_url
+                                o_response = urllib.urlopen(o_final_url).read()
+                                o_final_response = o_response.split(":")[2].split(",")[0].replace('"',"") 
+                            except:
+                                result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
+                                result.see("end")    
+                            if o_final_response == o_system: 
+                                if len(previous_best_route) != 10000:
+                                    result.insert(INSERT,"\n"+"Comparing potential routes for this waypoint: "+str(len(split_route))+" jumps VS "+str(len(previous_best_route))+" jumps.")
+                                    result.see("end")                                                                            
+                                if len(split_route) < len(previous_best_route):
+                                    best_tested_route = route
+                                    previous_best_route = split_route 
+                        split_best_route = str(best_tested_route).split(",")                                            
+                        origin = split_best_route[0].split("[")[1]
+                        destination = split_best_route[len(split_best_route)-1].split("]")[0]
+                        try:                                                                                                                               
+                            o_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+                            o_end_url = "/?datasource=tranquility&language=en-us"
+                            o_final_url = o_begin_url+origin+o_end_url
+                            o_response = urllib.urlopen(o_final_url).read()
+                            t_o_final_response = o_response.split(":")[2].split(",")[0].replace('"',"")
+                            
+                            d_begin_url = "https://esi.evetech.net/latest/universe/systems/"
+                            d_end_url = "/?datasource=tranquility&language=en-us"
+                            d_final_url = d_begin_url+destination+d_end_url
+                            d_response = urllib.urlopen(d_final_url).read()
+                            t_d_final_response = d_response.split(":")[2].split(",")[0].replace('"',"") 
+                        except:
+                            result.insert(INSERT,"\n"+"ERROR: Unable to get data from esi.evetech.net!")
+                            result.see("end")                 
+                        optimized_routes.append(best_tested_route)                    
+                        result.insert(INSERT,"\n\n"+"All possible routes considered. Using route: "+t_o_final_response+" to "+t_d_final_response+"\n")
+                        result.see("end")
+                        origins.append(t_o_final_response)
+                        destinations.append(t_d_final_response)
+                        last_destination = t_d_final_response
+                        finished = True 
                                                         
             total_routes.append(optimized_routes)          
             previous_routes = optimized_routes           
@@ -397,11 +400,18 @@ def start():
             initialized = False
         
         #SELECT THE BEST ROUTE FROM ALL CYCLES
-        previous_route = [None] * 10000
-        for route in total_routes:
-            if len(route) < len(previous_route):
+        previous_best_distance = 10000   
+        for route in total_routes: 
+            total_route_distance = 0                      
+            for r in route:
+                s_r = r.split(",")
+                total_route_distance += len(s_r)
+            if previous_best_distance != 10000:
+                result.insert(INSERT,"\n"+"Comparing optimized routes: "+str(total_route_distance)+" jumps VS "+str(previous_best_distance)+" jumps.")
+                result.see("end")
+            if total_route_distance < previous_best_distance:
                 final_best_route = route
-            previous_route = route
+                previous_best_distance = total_route_distance            
                 
         #DISPLAY THE OPTIMIZED ROUTE
         previous_destination = ""
